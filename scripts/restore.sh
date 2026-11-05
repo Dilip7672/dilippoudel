@@ -3,6 +3,10 @@ set -euo pipefail
 
 export PATH="$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin"
 
+# bench build needs the nvm-managed node + yarn
+NODE_BIN="$(ls -d "$HOME"/.nvm/versions/node/*/bin 2>/dev/null | sort -V | tail -1 || true)"
+[ -n "${NODE_BIN:-}" ] && export PATH="$NODE_BIN:$PATH"
+
 BENCH_DIR="${BENCH_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 SITE="${SITE:-lms.localhost}"
 BENCH="${BENCH:-$HOME/.local/bin/bench}"
