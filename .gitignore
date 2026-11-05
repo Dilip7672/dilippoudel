@@ -51,3 +51,7 @@ Thumbs.db
 
 # Local checkpoint metadata
 /.checkpoints
+
+# Local secrets / private notes
+*.local.md
+/LOCAL-CREDENTIALS.md
