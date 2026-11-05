@@ -3,6 +3,11 @@
 Local development bench for a Frappe-based LMS (planned multi-tenant SaaS).
 Secrets are **not** stored here; see `LOCAL-CREDENTIALS.md` (gitignored).
 
+## Planning
+
+- [Multi-tenant SaaS plan](docs/SAAS-PLAN.md)
+- [Phase 0/1 roadmap checklist](docs/ROADMAP-TASKS.md)
+
 ## Access
 
 - Bench site: `lms.localhost`
