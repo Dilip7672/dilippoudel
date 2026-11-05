@@ -1,0 +1,50 @@
+# Frappe bench runtime / generated
+/env/
+/sites/
+/config/
+/logs/
+/flow-server/
+
+# Upstream app clones (each has its own git repo)
+/apps/frappe/
+/apps/lms/
+/apps/payments/
+
+# Secrets
+*.pem
+*.key
+*.p12
+*.pfx
+.env
+.env.*
+*secret*
+*password*
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Node
+node_modules/
+.yarn/
+.pnp.*
+
+# Databases / dumps / cache
+*.sql
+*.sql.gz
+*.rdb
+*.dump
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+
+# Logs
+*.log
