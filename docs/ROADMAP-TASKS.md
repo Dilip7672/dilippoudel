@@ -10,12 +10,25 @@ backups. Custom domains, full billing, HA, and SSO are Phase 2+.
 
 ### Decisions
 - [ ] Confirm tenancy model: site-per-tenant.
-- [ ] Decide control plane: adopt `frappe/press` or build custom (thin).
+- [ ] Control-plane decision gate: `frappe/press` vs thin custom (see
+      evaluation below).
+- [ ] Confirm two billing layers: platform subscriptions vs tenant course
+      payments (never mixed).
+- [ ] Decide marketing site: Frappe, WordPress, or static (separate from the
+      control plane).
 - [ ] Define plans and limits (users, storage, courses, features).
 - [ ] Decide Desk policy: scoped Desk by default vs higher plans only.
 - [ ] Decide custom-domain timeline (Phase 2 recommended).
 - [ ] Decide region/hosting provider and data-residency needs.
 - [ ] Choose billing provider (Stripe) and tax approach.
+
+### Control plane evaluation (Phase 0 gate)
+- [ ] Deploy `frappe/press` on staging (separate site/DB).
+- [ ] Create a test tenant site + subdomain through Press.
+- [ ] Configure one plan + Stripe test mode; verify subscription and invoice.
+- [ ] Verify domain/TLS and backup/restore through Press.
+- [ ] Document gaps vs your pricing and LMS packaging.
+- [ ] Go/no-go: adopt Press vs build a thin custom control plane.
 
 ### Infrastructure baseline
 - [ ] Register platform domain (e.g. `yourplatform.com`).
@@ -44,7 +57,20 @@ backups. Custom domains, full billing, HA, and SSO are Phase 2+.
 
 ## Phase 1 — MVP (6-10 weeks)
 
+> Choose one path after the Phase 0 decision gate:
+> - **Path A — Press**: configure Press + build product glue only.
+> - **Path B — Custom**: build the control plane/provisioner below.
+
 ### Control plane
+
+**Path A (Press)**
+- [ ] Configure plans/prices/trials in Press + Stripe.
+- [ ] Wire signup -> Press tenant creation; map status/emails.
+- [ ] Brand the platform signup and tenant handoff.
+- [ ] Configure domains/TLS/backups via Press; verify restore.
+
+**Path B (custom)** — build the items below:
+
 - [ ] Tenant model (name, subdomain, plan, status, owner, dates).
 - [ ] Provisioning job model + state machine + status page.
 - [ ] Signup page: institute details, owner account, plan.
@@ -86,9 +112,11 @@ backups. Custom domains, full billing, HA, and SSO are Phase 2+.
 - [ ] Bounce handling basics.
 
 ### Billing (MVP)
-- [ ] Plan catalog + trial (manual or Stripe Checkout).
-- [ ] Link subscription to tenant; basic invoice record.
+- [ ] Platform billing: plan catalog + trial (Press, or Stripe Checkout).
+- [ ] Link platform subscription to tenant; basic invoice record.
 - [ ] Suspension rule for expired trial/payment (manual trigger ok).
+- [ ] Verify tenant course payments use the tenant's own Stripe via `payments`
+      and are separate from platform billing.
 
 ### Backups & recovery
 - [ ] Per-tenant daily DB + files backup.
@@ -128,14 +156,17 @@ backups. Custom domains, full billing, HA, and SSO are Phase 2+.
 - [ ] Daily backups run and a restore has been proven on staging.
 - [ ] Platform admin can retry failed provisioning, suspend, and delete a
       tenant.
-- [ ] Basic trial/payment enforcement works.
+- [ ] Basic platform trial/subscription enforcement works.
+- [ ] Tenant course payments work with the tenant's own Stripe and are
+      separate from platform billing.
 
 ---
 
 ## Explicitly out of scope for MVP (Phase 2+)
 
 - Custom domains + per-domain SSL automation.
-- Full Stripe subscriptions, dunning, usage metering.
+- Advanced dunning, usage metering, coupons/proration (Press may include
+  some out of the box).
 - HA, multi-region, Kubernetes autoscaling.
 - SSO/SAML, API, advanced analytics.
 - Dedicated instances and enterprise SLAs.

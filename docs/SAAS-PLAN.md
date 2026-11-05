@@ -21,6 +21,18 @@ tenants.
 - Marketing site + signup + billing + provisioning + tenant management.
 - Own database, own users, own admin console.
 - Talks to infrastructure to create/manage tenant sites.
+- Source of truth for tenant state, plans, subscriptions, domains, backups,
+  and audit logs.
+
+**Implementation options**
+
+| Option | What it is | Best for |
+|---|---|---|
+| Adopt `frappe/press` | Open-source control plane behind Frappe Cloud; includes provisioning, domains, TLS, backups, plans, Stripe billing, monitoring | Fast path to production-grade |
+| Thin custom control plane | Separate Frappe site + provisioning worker calling bench | MVP, unusual pricing/flows |
+| WordPress + custom provisioner | WP for marketing/checkout, separate service does provisioning | Teams strong in WordPress |
+
+Do **not** put the control plane inside a tenant site. It must be isolated.
 
 ### B. Tenant sites (data plane)
 
@@ -183,15 +195,26 @@ Enforcement:
 
 ---
 
-## 9. Billing
+## 9. Billing (two separate layers)
 
-- Stripe subscriptions, Checkout, Customer Portal, webhooks.
-- Plan catalog, trials, coupons, proration, tax (Stripe Tax), invoices.
-- Dunning -> past_due -> suspension policy.
-- Usage-based add-ons (extra users/storage).
-- Link control-plane subscription to tenant site.
-- **Separate** from LMS course payments (institutes can connect their own
-  Stripe via `payments` to sell courses).
+### Layer 1 — Platform billing (what institutes pay you)
+
+- Owned by the control plane.
+- `frappe/press` provides plans, subscriptions, invoices, Stripe integration,
+  trials, and billing history out of the box (self-hosting requires Stripe
+  setup, plan configuration, and testing).
+- Custom control plane: integrate Stripe Checkout/subscriptions/webhooks,
+  plan catalog, proration, tax, dunning, invoices.
+- Dunning -> past_due -> suspension policy; usage-based add-ons.
+- Link subscription to the tenant/site record.
+
+### Layer 2 — Tenant course payments (what students pay institutes)
+
+- Lives inside each tenant site via the `payments` app.
+- The institute connects its own Stripe account; revenue is theirs.
+- Never mix this with platform billing or the platform's Stripe account.
+
+The two layers must remain separate: platform revenue vs tenant revenue.
 
 ---
 
@@ -337,17 +360,48 @@ Realistic: **MVP ~2-3 months**, **production ~4-6 months**, **full scale
 
 ---
 
-## 20. Build vs. adopt: Frappe Press
+## 20. Control plane decision: Frappe Press vs custom
 
-- **`frappe/press`** is the open-source control plane behind Frappe Cloud: site
-  creation, domains, TLS, backups, monitoring, plans, billing.
-- **Adopt it** -> much faster to production, less custom code (~500-2,000 LOC
-  glue), but steep learning/ops and opinionated.
-- **Build custom** -> full control and simpler mental model, but you rebuild
-  provisioning/domain/SSL/billing (~5,000-10,000 LOC + heavy ops).
+**`frappe/press`** is the open-source control plane behind Frappe Cloud. It
+includes:
 
-Recommendation: evaluate Press first; if it fits, wrap it. Otherwise build a
-thin control plane and reuse tools (cert-manager, Stripe, S3).
+- Site creation/provisioning, suspend/delete
+- Plans, subscriptions, invoices, Stripe billing, trials
+- Subdomains, custom domains, TLS certificates
+- Per-site backups, monitoring, usage, logs
+- Agent/server management, bench groups, upgrades
+- Platform admin console, support/impersonation, audit
+
+It runs as its own Frappe app/site (separate DB) and drives the benches/sites
+underneath.
+
+**What Press does not give you for free**
+
+- Your signup UX, pricing, and branding
+- Your exact plan/limit rules and LMS feature packaging
+- Custom onboarding/emails/support flows
+- A fully white-label SaaS experience (customization still required)
+
+**Trade-off**
+
+| | Press | Custom control plane |
+|---|---|---|
+| Time to production | Faster | Slower |
+| Code to write | ~500-2,000 LOC glue | ~5,000-10,000 LOC |
+| Ops complexity | High (opinionated) | High (you build it) |
+| Flexibility | Constrained by its model | Full control |
+| Billing | Included | Build with Stripe |
+| Domains/TLS/backups | Included | Build/integrate |
+
+**Recommendation**
+
+1. Run a short Phase 0 spike: deploy Press on staging, create a tenant, map a
+   subdomain, configure a plan + Stripe, run a backup/restore.
+2. If it fits your pricing/flows, adopt Press and keep only product-specific
+   glue (signup UX, LMS packaging, branding).
+3. If it fights your model, build a thin custom control plane and reuse
+   components (Stripe, cert-manager/Let's Encrypt, S3).
+4. Do not build both. Pick one at the end of Phase 0.
 
 ---
 
@@ -363,11 +417,14 @@ thin control plane and reuse tools (cert-manager, Stripe, S3).
 
 ## 22. Decisions needed
 
-1. Build custom control plane vs adopt Frappe Press?
-2. Shared bench vs dedicated instances for paid tiers?
-3. Which plans/limits and what is free vs paid?
-4. Custom domains at launch or after MVP?
-5. Do tenants get Desk by default, or only on higher plans?
-6. Single region or multi-region/data residency?
-7. Billing provider (Stripe) and tax handling?
-8. SSO/enterprise features timeline?
+1. Control plane: adopt `frappe/press` or build a thin custom one? (Decision
+   gate at the end of Phase 0.)
+2. Marketing site: Frappe page, WordPress, or separate static site? (Keep it
+   separate from the control plane either way.)
+3. Shared bench vs dedicated instances for paid tiers?
+4. Which plans/limits and what is free vs paid?
+5. Custom domains at launch or after MVP?
+6. Do tenants get Desk by default, or only on higher plans?
+7. Single region or multi-region/data residency?
+8. Billing provider (Stripe) and tax handling?
+9. SSO/enterprise features timeline?
